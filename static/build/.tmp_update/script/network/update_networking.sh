@@ -719,7 +719,7 @@ enable_flag() {
 
 disable_flag() {
     flag="$1"
-    mv "$sysdir/config/.$flag" "$sysdir/config/.$flag_"
+    mv "$sysdir/config/.$flag" "$sysdir/config/.${flag}_"
 }
 
 is_running() {

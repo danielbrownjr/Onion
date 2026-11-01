@@ -21,7 +21,11 @@ migrate_drastic() {
         cp "$old_save_folder"/*.* "$new_save_folder"/
         cp "$old_savestate_folder"/*.* "$new_save_folder"/
 
-        7z a -r -mx0 "$backup_zip_file" "$old_drastic_folder"/
+        # Only delete the old folder once a backup of it exists
+        if ! 7z a -r -mx0 "$backup_zip_file" "$old_drastic_folder"/; then
+            echo "Drastic backup failed, keeping $old_drastic_folder" >>/tmp/.update_msg
+            return 1
+        fi
         rm -rf "$old_drastic_folder"/
 
         cp -r "$drastic_package_location"/* "/mnt/SDCARD/"
