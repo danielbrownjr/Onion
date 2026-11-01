@@ -113,10 +113,8 @@ main() {
     #EmuDeck - Startup scripts
     mkdir -p "$sysdir/startup"
     mkdir -p "$sysdir/checkoff"
-    startup_scripts=$(find "$sysdir/startup" -type f -name "*.sh")
-
-    for startup_script in $startup_scripts; do
-        sh "$startup_script"
+    find "$sysdir/startup" -type f -name "*.sh" | while IFS= read -r startup_script; do
+        sh "$startup_script" </dev/null
     done
 
     # Auto launch
@@ -319,6 +317,8 @@ launch_game() {
     if check_is_game "$cmd"; then
         # Extract rom path
         rompath=$(echo "$cmd" | awk '{ st = index($0,"\" \""); print substr($0,st+3,length($0)-st-3)}')
+        # cmd_to_run.sh may already contain escaped dollar signs from a previous launch
+        rompath=$(echo "$rompath" | sed 's/\\\$/$/g')
 
         # Check for custom launch script
         if echo "$rompath" | grep -q ":"; then
@@ -363,11 +363,13 @@ launch_game() {
             override_game_core "$romcfgpath" "$launch_script"
         fi
 
-        # Handle dollar sign
-        if echo "$rompath" | grep -q "\$"; then
+        # Handle dollar sign (unescape first so repeated launches don't double-escape)
+        case "$rompath" in
+        *'$'*)
             temp=$(cat $sysdir/cmd_to_run.sh)
-            echo "$temp" | sed 's/\$/\\\$/g' > $sysdir/cmd_to_run.sh
-        fi
+            echo "$temp" | sed 's/\\\$/$/g; s/\$/\\$/g' > $sysdir/cmd_to_run.sh
+            ;;
+        esac
 
         # Kill services for maximum performance
         if [ ! -f $sysdir/config/.keepServicesAlive ]; then
@@ -649,10 +651,8 @@ check_off_order() {
         touch /tmp/shutting_down
 
         #EmuDeck - CheckOff scripts
-        check_off_scripts=$(find "$sysdir/checkoff" -type f -name "*.sh")
-
-        for check_off_script in $check_off_scripts; do
-            sh "$check_off_script"
+        find "$sysdir/checkoff" -type f -name "*.sh" | while IFS= read -r check_off_script; do
+            sh "$check_off_script" </dev/null
         done
 
         bootScreen "$1" &

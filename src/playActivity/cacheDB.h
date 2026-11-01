@@ -42,13 +42,16 @@ sqlite3_stmt *cache_db_prepare(char *cache_db_file_path, char *sql)
 {
     printf_debug("cache_db_prepare(%s, %s)\n", cache_db_file_path, sql);
     sqlite3_stmt *stmt = NULL;
+    cache_db_close();
     cache_db_open(cache_db_file_path);
     if (cache_db != NULL) {
         int rc = sqlite3_prepare_v2(cache_db, sql, -1, &stmt, NULL);
         if (rc != SQLITE_OK) {
             printf_debug("%s: %s\n", sqlite3_errmsg(cache_db), sqlite3_sql(stmt));
         }
-        cache_db_close();
+        // The connection must stay open until the statement is finalized:
+        // sqlite3_close() fails with SQLITE_BUSY while a statement is live,
+        // which would leak the connection. Callers close via cache_db_close().
     }
     return (stmt);
 }
@@ -101,7 +104,7 @@ CacheDBItem *cache_db_find(const char *path_or_name)
     printf_debug("cache_db_find('%s')\n", path_or_name);
 
     CacheDBItem *cache_db_item = NULL;
-    char cache_db_file_path[STR_MAX];
+    char cache_db_file_path[PATH_MAX];
     char cache_type[STR_MAX];
     char *_path_or_name = strdup(path_or_name);
 
@@ -151,6 +154,7 @@ CacheDBItem *cache_db_find(const char *path_or_name)
     }
 
     sqlite3_finalize(stmt);
+    cache_db_close();
 
     return cache_db_item;
 }

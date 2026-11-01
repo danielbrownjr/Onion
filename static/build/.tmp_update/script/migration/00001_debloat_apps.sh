@@ -1,4 +1,4 @@
-#!bin/sh
+#!/bin/sh
 
 cd /mnt/SDCARD/App
 rm -rf \

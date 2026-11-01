@@ -18,7 +18,8 @@ fi
 
 cat "$patch" | (
     count=0
-    content=`cat "$config"`
+    content=`cat "$config"` || exit 1
+    original="$content"
 
     while read line; do
         key=`echo "$line" | sed 's/^\s*//g' | sed 's/\s*=.*$//g'`
@@ -34,7 +35,19 @@ $key = \"$value\""
         let count++
     done
 
-    echo "$content" > "$config"
+    if [ "$content" = "$original" ]; then
+        echo "0 lines changed"
+        exit 0
+    fi
+
+    # Write to a temp file and rename it over the original, so a power loss
+    # or full card mid-write can't leave a truncated retroarch.cfg
+    if echo "$content" > "$config.tmp" && sync && mv -f "$config.tmp" "$config"; then
+        :
+    else
+        rm -f "$config.tmp"
+        exit 1
+    fi
 
     echo "$count lines patched"
 )

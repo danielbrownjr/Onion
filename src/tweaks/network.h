@@ -340,7 +340,7 @@ void network_setTzManualState(void *pt)
     network_setState(&network_state.manual_tz, ".manual_tz", !enabled);
     if (enabled) {
         char utc_str[10];
-        if (config_get(".tz_sync", CONFIG_STR, utc_str)) {
+        if (config_get(".tz_sync", "%9[^\n]", utc_str)) {
             setenv("TZ", utc_str, 1);
             tzset();
             config_setString(".tz", utc_str);

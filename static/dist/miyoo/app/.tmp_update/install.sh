@@ -38,7 +38,7 @@ main() {
     check_install_ra
 
     # Start the battery monitor
-    if [ $DEVICE_ID -eq MODEL_MM ]; then
+    if [ $DEVICE_ID -eq $MODEL_MM ]; then
         # init charger detection
         gpiodir=/sys/devices/gpiochip0/gpio
         if [ ! -f $gpiodir/gpio59/direction ]; then
@@ -347,7 +347,7 @@ run_installation() {
     #                                           Exit                                        #
     #########################################################################################
 
-    if [ $DEVICE_ID -eq MODEL_MM ]; then
+    if [ $DEVICE_ID -eq $MODEL_MM ]; then
         echo "$verb2 complete!" >> /tmp/.update_msg
         touch $sysdir/.waitConfirm
         touch $sysdir/.installed
@@ -359,7 +359,7 @@ run_installation() {
     installUI &
     sleep 1
 
-    if [ $DEVICE_ID -eq MODEL_MM ]; then
+    if [ $DEVICE_ID -eq $MODEL_MM ]; then
         counter=10
 
         while [ -f $sysdir/.waitConfirm ] && [ $counter -ge 0 ]; do
@@ -657,10 +657,12 @@ unzip_progress() {
     sleep 1
 
     # Run the 7z extraction command in the background and redirect output to /tmp/.extraction_output
+    rm -f "/tmp/extraction_status"
     (
         7z x -aoa -o"$dest" "$zipfile" -bsp1 -bb > /tmp/.extraction_output
         echo $? > "/tmp/extraction_status"
     ) &
+    extraction_pid=$!
 
     sleep 1
 
@@ -682,8 +684,7 @@ unzip_progress() {
     fi
 
     # Continuously update /tmp/.update_msg every 500 milliseconds until the command line finishes
-    a=$(pgrep 7z)
-    while [ -n "$a" ]; do
+    while kill -0 $extraction_pid 2> /dev/null; do
         last_line=$(tail -n 1 /tmp/.extraction_output)
         value=$(echo "$last_line" | sed 's/.* \([0-9]\+\)%.*/\1/')
         if [ "$value" -eq "$value" ] 2> /dev/null; then # check if the value is numeric
@@ -695,12 +696,12 @@ unzip_progress() {
         fi
         > /tmp/.extraction_output # to avoid to parse a too big file
         sleep 0.5
-        a=$(pgrep 7z)
     done
+    wait $extraction_pid
 
-    # Check the exit status of the extraction command
-    extraction_status=$(cat "/tmp/extraction_status")
-    if [ "$extraction_status" -ne 0 ]; then
+    # Check the exit status of the extraction command (missing status = failure)
+    extraction_status=$(cat "/tmp/extraction_status" 2> /dev/null)
+    if [ "${extraction_status:-1}" != "0" ]; then
         touch $sysdir/.installFailed
         echo ":: Installation failed!"
         sync

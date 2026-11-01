@@ -94,7 +94,7 @@ size_t str_trim(char *out, size_t len, const char *str, bool first)
     bool is_string = false;
 
     // Trim leading space
-    while (strchr("\r\n\t {},", (unsigned char)*str) != NULL)
+    while (*str && strchr("\r\n\t {},", (unsigned char)*str) != NULL)
         str++;
 
     end = str + 1;
@@ -194,9 +194,9 @@ void str_serializeTime(char *dest_str, int nTime)
 
 int str_count_char(const char *str, char ch)
 {
-    int i, count = 0;
-    for (i = 0; i <= strlen(str); i++) {
-        if (str[i] == ch) {
+    int count = 0;
+    for (; *str; str++) {
+        if (*str == ch) {
             count++;
         }
     }
@@ -207,8 +207,9 @@ bool includeCJK(char *str)
 {
     while (*str) {
         unsigned char c = *str;
-        // normal cjk range
-        if (c >= 0x80 && c <= 0x9FFF) {
+        // UTF-8 lead bytes 0xE3-0xED cover U+3000-U+DFFF, which contains
+        // the CJK punctuation, kana, unified ideographs and hangul blocks
+        if (c >= 0xE3 && c <= 0xED) {
             return true;
         }
         str++;

@@ -9,7 +9,7 @@ echo "$current_state" \
     | sed "1,/\"pageend\"/s/:\s*[0-9]*,/:\t5,/" \
     | tac > /tmp/state.json
 
-current_idx="$(cat /appconfigs/romwinidx.json | awk -v search="$romdir" '$0 ~ search{n=4}; n {n--; next}; 1')"
+current_idx="$(cat /appconfigs/romwinidx.json | awk -v search="${romdir%/}" 'index($0, search "\"") || index($0, search "/\""){n=4}; n {n--; next}; 1')"
 echo "$current_idx" > /appconfigs/romwinidx.json
 
 rm -f "$romdir/$(basename "$romdir")_cache2.db" 2> /dev/null

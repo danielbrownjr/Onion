@@ -25,6 +25,17 @@ typedef struct {
 static SaveStateInfo_s g_save_state_info = {.slots = {0}, .slot_count = 0, .selected_slot = 0};
 
 static pthread_t g_scan_thread_pt;
+static bool g_scan_thread_running = false;
+
+// Joining a thread more than once is undefined behavior, so track whether
+// the scan thread still needs to be joined.
+static void _join_scan_thread(void)
+{
+    if (g_scan_thread_running) {
+        pthread_join(g_scan_thread_pt, NULL);
+        g_scan_thread_running = false;
+    }
+}
 
 static bool g_save_thread_running = false;
 static bool g_save_thread_success = false;
@@ -303,7 +314,7 @@ void action_saveGame(void *_)
 
 void action_loadGame(void *_)
 {
-    if (g_save_state_info.selected_slot < 0 && g_save_state_info.selected_slot >= g_save_state_info.slot_count) {
+    if (g_save_state_info.selected_slot < 0 || g_save_state_info.selected_slot >= g_save_state_info.slot_count) {
         return;
     }
 
@@ -411,7 +422,8 @@ void popMenu_create(void)
                                  LANG_LOAD);
 
             // Load save states in a thread
-            pthread_create(&g_scan_thread_pt, NULL, _scan_thread, NULL);
+            _join_scan_thread();
+            g_scan_thread_running = pthread_create(&g_scan_thread_pt, NULL, _scan_thread, NULL) == 0;
         }
 
         list_addItemWithLang(&appState.pop_menu_list,
@@ -434,7 +446,7 @@ void renderPopMenu(AppState *state)
 
         if (item != NULL && item->action_id == POP_MENU_ACTION_LOAD) {
             transparent_bg = appState.transparent_bg;
-            pthread_join(g_scan_thread_pt, NULL);
+            _join_scan_thread();
         }
 
         theme_renderPopMenu(screen, state->view_mode == VIEW_NORMAL ? state->header_height : 0, &appState.pop_menu_list, transparent_bg);

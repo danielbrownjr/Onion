@@ -227,8 +227,8 @@ void settings_load(void)
     config_get("vibration", CONFIG_INT, &settings.vibration);
     config_get("startup/tab", CONFIG_INT, &settings.startup_tab);
     config_get("display/blueLightLevel", CONFIG_INT, &settings.blue_light_level);
-    config_get("display/blueLightTime", CONFIG_STR, &settings.blue_light_time);
-    config_get("display/blueLightTimeOff", CONFIG_STR, &settings.blue_light_time_off);
+    config_get("display/blueLightTime", "%15[^\n]", &settings.blue_light_time);
+    config_get("display/blueLightTimeOff", "%15[^\n]", &settings.blue_light_time_off);
     config_get("display/blueLightRGB", CONFIG_INT, &settings.blue_light_rgb);
     config_get("pwmfrequency", CONFIG_INT, &settings.pwmfrequency);
     config_get("recCountdown", CONFIG_INT, &settings.rec_countdown);

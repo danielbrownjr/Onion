@@ -11,8 +11,9 @@ typedef struct {
     bool is_duplicate;
     int dup_id;
 } InstalledApp;
-static InstalledApp _installed_apps[100];
-static InstalledApp _installed_apps_sorted[100];
+#define MAX_INSTALLED_APPS 100
+static InstalledApp _installed_apps[MAX_INSTALLED_APPS];
+static InstalledApp _installed_apps_sorted[MAX_INSTALLED_APPS];
 static int installed_apps_count = 0;
 static bool installed_apps_loaded = false;
 
@@ -52,7 +53,7 @@ InstalledApp *getInstalledApps(bool sort)
         if ((dp = opendir("/mnt/SDCARD/App")) == NULL)
             return NULL;
 
-        while ((ep = readdir(dp))) {
+        while ((ep = readdir(dp)) && installed_apps_count < MAX_INSTALLED_APPS) {
             if (ep->d_type != DT_DIR || strcmp(ep->d_name, ".") == 0 ||
                 strcmp(ep->d_name, "..") == 0)
                 continue;
@@ -83,6 +84,7 @@ InstalledApp *getInstalledApps(bool sort)
             printf_debug("app %d: %s (%s)\n", i, app->dirName, app->label);
             installed_apps_count++;
         }
+        closedir(dp);
 
         qsort(_installed_apps_sorted, installed_apps_count,
               sizeof(InstalledApp), _comp_installed_apps);

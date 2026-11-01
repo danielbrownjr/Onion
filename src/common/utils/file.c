@@ -95,8 +95,10 @@ void file_readLastLine(const char *filename, char *out_str)
         fseek(fd, 0L, SEEK_SET);
 
         int max_len = size < 255 ? size + 1 : 255;
-        if (max_len <= 1)
+        if (max_len <= 1) {
+            fclose(fd);
             return;
+        }
 
         // get the last line
         fseek(fd, -max_len, SEEK_END);
@@ -124,29 +126,36 @@ char *file_read(const char *path)
     if (!exists(path))
         return NULL;
 
-    if ((f = fopen(path, "rb"))) {
-        fseek(f, 0, SEEK_END);
-        length = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        buffer = (char *)malloc((length + 1) * sizeof(char));
-        if (buffer)
-            fread(buffer, sizeof(char), length, f);
+    if (!(f = fopen(path, "rb")))
+        return NULL;
+
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (length < 0) {
         fclose(f);
+        return NULL;
     }
-    buffer[length] = '\0';
+
+    buffer = (char *)malloc((length + 1) * sizeof(char));
+    if (buffer) {
+        length = fread(buffer, sizeof(char), length, f);
+        buffer[length] = '\0';
+    }
+    fclose(f);
 
     return buffer;
 }
 
 bool file_write(const char *path, const char *str, uint32_t len)
 {
-    uint32_t fd;
-    if ((fd = open(path, O_WRONLY)) == 0)
+    int fd;
+    if ((fd = open(path, O_WRONLY)) < 0)
         return false;
-    if (write(fd, str, len) == -1)
-        return false;
+    bool ok = write(fd, str, len) != -1;
     close(fd);
-    return true;
+    return ok;
 }
 
 void file_copy(const char *src_path, const char *dest_path)

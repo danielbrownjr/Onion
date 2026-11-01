@@ -203,10 +203,10 @@ PlayActivities *play_activity_find_all(void)
         entry->play_count = sqlite3_column_int(stmt, 4);
         entry->play_time_total = sqlite3_column_int(stmt, 5);
         entry->play_time_average = sqlite3_column_int(stmt, 6);
-        if (sqlite3_column_text(stmt, 8) != NULL) {
+        if (sqlite3_column_text(stmt, 7) != NULL) {
             entry->first_played_at = strdup((const char *)sqlite3_column_text(stmt, 7));
         }
-        if (sqlite3_column_text(stmt, 9) != NULL) {
+        if (sqlite3_column_text(stmt, 8) != NULL) {
             entry->last_played_at = strdup((const char *)sqlite3_column_text(stmt, 8));
         }
 
@@ -408,10 +408,10 @@ int play_activity_get_play_time(const char *rom_path)
 bool _get_active_rom_path(char *rom_path_out)
 {
     char *ptr;
-    char cmd[STR_MAX] = "";
+    char cmd[1024] = "";
 
     FILE *fp;
-    file_get(fp, CMD_TO_RUN, CONTENT_STR, cmd);
+    file_get(fp, CMD_TO_RUN, "%1023[^\n]", cmd);
 
     if (strlen(cmd) == 0) {
         return false;
@@ -422,7 +422,8 @@ bool _get_active_rom_path(char *rom_path_out)
     }
 
     if ((ptr = strrchr(cmd, '"')) != NULL) {
-        strncpy(rom_path_out, ptr + 1, STR_MAX);
+        strncpy(rom_path_out, ptr + 1, STR_MAX - 1);
+        rom_path_out[STR_MAX - 1] = '\0';
         return true;
     }
 
