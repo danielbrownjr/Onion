@@ -226,9 +226,9 @@ release: dist
 
 clean:
 	@$(ECHO) $(PRINT_RECIPE)
-	@rm -rf $(BUILD_DIR) $(BUILD_TEST_DIR) $(ROOT_DIR)/dist $(TEMP_DIR)/configs
-	@rm -f $(CACHE)/.setup
-	@find include src -type f -name *.o -exec rm -f {} \;
+	@rm -rf "$(BUILD_DIR)" "$(BUILD_TEST_DIR)" "$(ROOT_DIR)/dist" "$(TEMP_DIR)/configs"
+	@rm -f "$(CACHE)/.setup"
+	@find include src -type f -name '*.o' -exec rm -f {} \;
 
 deepclean: clean
 	@rm -rf $(CACHE)

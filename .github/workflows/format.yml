@@ -4,44 +4,51 @@ on:
     paths:
       - 'src/**'
 
+permissions:
+  contents: write
+
 jobs:
   format:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           # check out HEAD on the branch
           ref: ${{ github.head_ref }}
-          # make sure the parent commit is grabbed as well, because
-          # that's what will get formatted (i.e. the most recent commit)
-          fetch-depth: 2
+          # full history so the diff against the base branch can be computed
+          fetch-depth: 0
+      # Plain git instead of a third-party action: tj-actions/changed-files was
+      # compromised in March 2025 (CVE-2025-30066), and this job can push.
       - name: Get all src files that have changed
         id: changed-files
-        uses: tj-actions/changed-files@v37
-        with:
-          files_yaml: |
-            src:
-              - src/**/*.c
-              - src/**/*.h
-              - src/**/*.cpp
-              - src/**/*.hpp
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "$BASE_REF"
+          git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- \
+            'src/*.c' 'src/*.h' 'src/*.cpp' 'src/*.hpp' > "$RUNNER_TEMP/changed_files.txt"
+          if [ -s "$RUNNER_TEMP/changed_files.txt" ]; then
+            echo "src_any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "src_any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: List all changed src files
         run: |
-          for file in ${{ steps.changed-files.outputs.src_all_changed_files }}; do
+          while IFS= read -r file; do
             echo "$file was changed"
-          done
+          done < "$RUNNER_TEMP/changed_files.txt"
       - name: Apply formatting
         if: steps.changed-files.outputs.src_any_changed == 'true'
         run: |
-          sudo apt install clang-format
-          for file in ${{ steps.changed-files.outputs.src_all_changed_files }}; do
+          sudo apt-get install -y clang-format
+          while IFS= read -r file; do
             echo "clang-format -i '$file'"
             clang-format -style=file -i "$file"
-          done
+          done < "$RUNNER_TEMP/changed_files.txt"
       # commit the changes (if there are any)
       - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4.1.2
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 🎨 apply clang-format changes
           branch: ${{ github.head_ref }}
