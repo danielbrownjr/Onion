@@ -83,9 +83,9 @@ int value_blueLightLevel(void)
 
 int value_blueLightTimeOn(void)
 {
-    char blueLightTime[12] = {0};
+    char blueLightTime[16] = {0};
     int blueLightID = 0;
-    if (!config_get("display/blueLightTime", CONFIG_STR, blueLightTime)) {
+    if (!config_get("display/blueLightTime", "%15[^\n]", blueLightTime)) {
         strcpy(blueLightTime, settings.blue_light_time);
         config_setString("display/blueLightTime", blueLightTime);
     }
@@ -95,9 +95,9 @@ int value_blueLightTimeOn(void)
 
 int value_blueLightTimeOff(void)
 {
-    char blueLightTimeOff[12] = {0};
+    char blueLightTimeOff[16] = {0};
     int blueLightID = 0;
-    if (!config_get("display/blueLightTimeOff", CONFIG_STR, blueLightTimeOff)) {
+    if (!config_get("display/blueLightTimeOff", "%15[^\n]", blueLightTimeOff)) {
         strcpy(blueLightTimeOff, settings.blue_light_time_off);
         config_setString("display/blueLightTimeOff", blueLightTimeOff);
     }
